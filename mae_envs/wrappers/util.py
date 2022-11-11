@@ -1,5 +1,5 @@
 import gym
-from mujoco_py import MujocoException
+import mujoco
 from gym.spaces import Dict, Box
 import numpy as np
 from copy import deepcopy
@@ -71,23 +71,23 @@ class DiscardMujocoExceptionEpisodes(gym.Wrapper):
             Please discard episode and reset. If info['discard_episode'] is True the episode\
             should be discarded"
         try:
-            obs, rew, done, info = self.env.step(action)
+            obs, rew, terminated, truncated, info = self.env.step(action)
             info['discard_episode'] = False
-        except MujocoException as e:
+        except mujoco.UnexpectedError as e:
             self.episode_error = True
             # Done is set to False such that rollout workers do not accidently send data in
             # the event that timelimit is up in the same step as an error occured.
-            obs, rew, done, info = {}, 0.0, False, {'discard_episode': True}
+            obs, rew, terminated, truncated, info = {}, 0.0, False, False, {'discard_episode': True}
             logging.info(str(e))
             logging.info("Encountered Mujoco Exception During Environment Step.\
                           Reset Episode Required")
 
-        return obs, rew, done, info
+        return obs, rew, terminated, truncated, info
 
     def reset(self):
         try:
             obs = self.env.reset()
-        except MujocoException:
+        except mujoco.UnexpectedError:
             logging.info("Encountered Mujoco Exception During Environment Reset.\
                           Trying Reset Again")
             obs = self.reset()
