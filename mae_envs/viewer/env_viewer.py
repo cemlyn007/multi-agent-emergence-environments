@@ -1,15 +1,15 @@
 import numpy as np
 import time
-from mujoco_py import const, MjViewer
 import glfw
+import mujoco
+from mujoco_worldgen.util.envs import mjviewer
 from gym.spaces import Box, MultiDiscrete, Discrete
 
 
-class EnvViewer(MjViewer):
-
+class EnvViewer(mjviewer.MjViewer):
     def __init__(self, env):
         self.env = env
-        self.elapsed = [0]
+        self.elapsed = [0.]
         self.seed = self.env.seed()
         super().__init__(self.env.unwrapped.sim)
         self.n_agents = self.env.metadata['n_actors']
@@ -122,13 +122,13 @@ class EnvViewer(MjViewer):
             _, _, _, env_info = self.env.step(self.action)
             if env_info.get('discard_episode', False):
                 self.env.reset()
-            self.add_overlay(const.GRID_TOPRIGHT, "Reset env; (current seed: {})".format(self.seed), "N - next / P - previous ")
-            self.add_overlay(const.GRID_TOPRIGHT, "Apply action", "A (-0.05) / Z (+0.05)")
-            self.add_overlay(const.GRID_TOPRIGHT, "on agent index %d out %d" % (self.agent_mod_index, self.n_agents), "Y / U")
-            self.add_overlay(const.GRID_TOPRIGHT, f"on action type {self.action_types[self.action_type_mod_index]}", "G / B")
-            self.add_overlay(const.GRID_TOPRIGHT, "on action index %d out %d" % (self.action_mod_index, self.num_action[self.action_type_mod_index]), "J / K")
-            self.add_overlay(const.GRID_BOTTOMRIGHT, "Reset took", "%.2f sec." % (sum(self.elapsed) / len(self.elapsed)))
-            self.add_overlay(const.GRID_BOTTOMRIGHT, "Action", str(self.action))
+            self.add_overlay(mujoco.mjtGridPos.GRID_TOPRIGHT, "Reset env; (current seed: {})".format(self.seed), "N - next / P - previous ")
+            self.add_overlay(mujoco.mjtGridPos.GRID_TOPRIGHT, "Apply action", "A (-0.05) / Z (+0.05)")
+            self.add_overlay(mujoco.mjtGridPos.GRID_TOPRIGHT, "on agent index %d out %d" % (self.agent_mod_index, self.n_agents), "Y / U")
+            self.add_overlay(mujoco.mjtGridPos.GRID_TOPRIGHT, f"on action type {self.action_types[self.action_type_mod_index]}", "G / B")
+            self.add_overlay(mujoco.mjtGridPos.GRID_TOPRIGHT, "on action index %d out %d" % (self.action_mod_index, self.num_action[self.action_type_mod_index]), "J / K")
+            self.add_overlay(mujoco.mjtGridPos.GRID_BOTTOMRIGHT, "Reset took", "%.2f sec." % (sum(self.elapsed) / len(self.elapsed)))
+            self.add_overlay(mujoco.mjtGridPos.GRID_BOTTOMRIGHT, "Action", str(self.action))
             self.render()
             if once:
                 return

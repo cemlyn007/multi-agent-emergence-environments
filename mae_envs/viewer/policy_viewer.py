@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 import time
-import glfw
-import numpy as np
 from operator import itemgetter
-from mujoco_py import const, MjViewer
+
+import glfw
+import mujoco
+import numpy as np
+from mujoco_worldgen.util.envs import mjviewer
 from mujoco_worldgen.util.types import store_args
+
 from ma_policy.util import listdict2dictnp
 
 
@@ -18,7 +21,7 @@ def splitobs(obs, keepdims=True):
     return [{k: v[[i]] if keepdims else v[i] for k, v in obs.items()} for i in range(n_agents)]
 
 
-class PolicyViewer(MjViewer):
+class PolicyViewer(mjviewer.MjViewer):
     '''
     PolicyViewer runs a policy with an environment and optionally displays it.
         env - environment to run policy in
@@ -27,6 +30,7 @@ class PolicyViewer(MjViewer):
         seed - environment seed to view
         duration - time in seconds to run the policy, run forever if duration=None
     '''
+
     @store_args
     def __init__(self, env, policies, display_window=True, seed=None, duration=None):
         if seed is None:
@@ -93,11 +97,13 @@ class PolicyViewer(MjViewer):
                 self.reset_increment()
 
             if self.display_window:
-                self.add_overlay(const.GRID_TOPRIGHT, "Reset env; (current seed: {})".format(self.seed), "N - next / P - previous ")
-                self.add_overlay(const.GRID_TOPRIGHT, "Reward", str(self.total_rew))
+
+                self.add_overlay(mujoco.mjtGridPos.GRID_TOPRIGHT, "Reset env; (current seed: {})".format(self.seed),
+                                 "N - next / P - previous ")
+                self.add_overlay(mujoco.mjtGridPos.GRID_TOPRIGHT, "Reward", str(self.total_rew))
                 if hasattr(self.env.unwrapped, "viewer_stats"):
                     for k, v in self.env.unwrapped.viewer_stats.items():
-                        self.add_overlay(const.GRID_TOPRIGHT, k, str(v))
+                        self.add_overlay(mujoco.mjtGridPos.GRID_TOPRIGHT, k, str(v))
 
                 self.env.render()
 
