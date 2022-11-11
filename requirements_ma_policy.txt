@@ -1,5 +1,5 @@
-tensorflow==1.13.1
-cloudpickle==0.5.2
-baselines==0.1.5
-opencv-python>=3.4.3.18  # needed for baselines not to crash
+tensorflow==2.10.1
+cloudpickle==2.2.0
+git+https://github.com/cemlyn007/baselines
+opencv-python==4.6.0.66  # needed for baselines not to crash
 pytest==5.0.1
