@@ -1,5 +1,3 @@
-from os import getenv
-from os.path import dirname, realpath
 from setuptools import find_packages, setup
 
 
