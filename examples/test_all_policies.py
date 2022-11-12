@@ -20,7 +20,6 @@ class TestExamine:
         with pytest.raises(subprocess.TimeoutExpired):
             subprocess.check_call(["python", EXAMINE_FILE_PATH, os.path.join(EXAMPLES_DIR, env)], timeout=10)
 
-    @pytest.mark.skip('Policy cannot be unpickled because: No module named \'gym.spaces.dict_space\'.')
     @pytest.mark.parametrize(['env', 'policy'], [
         ("hide_and_seek_full.jsonnet", "hide_and_seek_full.npz"),
         ("hide_and_seek_quadrant.jsonnet", "hide_and_seek_quadrant.npz"),
