@@ -5,11 +5,11 @@ from copy import deepcopy
 import logging
 import traceback
 import sys
-from ma_policy.variable_schema import VariableSchema, BATCH, TIMESTEPS
+from ma_policy.variable_schema import VariableSchema, BATCH
 from ma_policy.util import shape_list
 from ma_policy.layers import (entity_avg_pooling_masked, entity_max_pooling_masked,
                               entity_concat, concat_entity_masks, residual_sa_block,
-                              circ_conv1d)
+                              circ_conv1d, tf_layer_norm)
 
 logger = logging.getLogger(__name__)
 
@@ -115,18 +115,22 @@ def construct_tf_graph(all_inputs, spec, act, scope='', reuse=False,):
                         layer['activation'] = valid_activations[layer['activation']]
                         layer_name = layer.pop('layer_name', f'dense{i}')
                         for j in range(len(nodes_in)):
-                            inp[nodes_out[j]] = tf.compat.v1.layers.dense(inp[nodes_in[j]],
-                                                                name=f'{layer_name}-{j}',
-                                                                kernel_initializer=tf.keras.initializers.glorot_normal(),
-                                                                reuse=reuse,
-                                                                **layer)
+                            inp[nodes_out[j]] = tf.compat.v1.layers.dense(
+                                inp[nodes_in[j]],
+                                name=f'{layer_name}-{j}',
+                                kernel_initializer=tf.keras.initializers.glorot_normal(),
+                                reuse=reuse,
+                                **layer
+                            )
                     elif layer_type == 'lstm':
                         layer_name = layer.pop('layer_name', f'lstm{i}')
                         with tf.compat.v1.variable_scope(layer_name, reuse=reuse):
                             assert len(nodes_in) == len(nodes_out) == 1
                             cell = tf.compat.v1.nn.rnn_cell.BasicLSTMCell(layer['units'])
-                            initial_state = tf.compat.v1.nn.rnn_cell.LSTMStateTuple(inp[scope + f'_lstm{i}_state_c'],
-                                                                          inp[scope + f'_lstm{i}_state_h'])
+                            initial_state = tf.compat.v1.nn.rnn_cell.LSTMStateTuple(
+                                inp[scope + f'_lstm{i}_state_c'],
+                                inp[scope + f'_lstm{i}_state_h']
+                            )
                             inp[nodes_out[0]], state_out = tf.compat.v1.nn.dynamic_rnn(cell,
                                                                                        inp[nodes_in[0]],
                                                                                        initial_state=initial_state)
@@ -213,7 +217,7 @@ def construct_tf_graph(all_inputs, spec, act, scope='', reuse=False,):
                     elif layer_type == "layernorm":
                         layer_name = layer.pop('layer_name', f'layernorm{i}')
                         with tf.compat.v1.variable_scope(layer_name, reuse=reuse):
-                            inp[nodes_out[0]] = tf.keras.layers.LayerNormalization(2)(inp[nodes_in[0]])
+                            inp[nodes_out[0]] = tf_layer_norm(inp[nodes_in[0]], axis=2)
                     else:
                         raise NotImplementedError(f"Layer type -- {layer_type} -- not yet implemented")
             except Exception:

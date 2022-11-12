@@ -120,7 +120,7 @@ def residual_sa_block(inp, mask, heads, n_embd,
         x = inp + post_a_mlp
         if post_sa_layer_norm:
             with tf.compat.v1.variable_scope('post_a_layernorm'):
-                x = tf.keras.layers.LayerNormalization(3)(x)
+                x = tf_layer_norm(x, axis=3)
         if n_mlp > 1:
             mlp = x
             mlp2_scale = np.sqrt(mlp_w1 / n_embd)
@@ -224,7 +224,7 @@ def qkv_embed(inp, heads, n_embd, layer_norm=False, qk_w=1.0, v_w=0.01, reuse=Fa
         bs, T, NE, features = shape_list(inp)
         if layer_norm:
             with tf.compat.v1.variable_scope('pre_sa_layer_norm'):
-                inp = tf.keras.layers.LayerNormalization(3)(inp)
+                inp = tf_layer_norm(inp, axis=3)
 
         # qk shape (bs x T x NE x h x n_embd/h)
         qk_scale = np.sqrt(qk_w / features)
@@ -300,3 +300,40 @@ def layernorm(x, scope, epsilon=1e-5, reuse=False):
         variance = tf.reduce_mean(tf.square(x - mean), axis=[-1], keep_dims=True)
         norm_x = (x - mean) * tf.rsqrt(variance + epsilon)
         return norm_x * gain + bias
+
+def tf_layer_norm(input_tensor, axis=-1, center=True, scale=True, name=None):
+    """Define a temp class to reuse layer_norm in TF 2.0
+    https://github.com/google-research/bert/blob/81646b9b6c45198f15633433310f4981466e13d5/modeling.py#L362
+    """
+
+    class bert_layer_norm(tf.compat.v1.keras.layers.LayerNormalization):
+        def call(self, inputs, gamma, beta):
+            self.gamma = gamma
+            self.beta = beta
+            return super(bert_layer_norm, self).call(inputs)
+
+    """Run layer normalization on the last dimension of the tensor."""
+    input_layer_norm = bert_layer_norm(axis=axis, center=center, scale=scale,
+                                       name=name)
+    with tf.compat.v1.variable_scope(
+            name, 'LayerNorm', [input_tensor], reuse=None) as sc:
+        # Allocate parameters for the beta and gamma of the normalization.
+        dtype = input_tensor.dtype.base_dtype
+        param_shape = input_tensor.shape[-1:]
+        beta = tf.compat.v1.get_variable(
+            "beta",
+            shape=param_shape,
+            dtype=dtype,
+            initializer=tf.zeros_initializer(),
+            collections=None,
+            trainable=True)
+
+        gamma = tf.compat.v1.get_variable(
+            'gamma',
+            shape=param_shape,
+            dtype=dtype,
+            initializer=tf.ones_initializer(),
+            collections=None,
+            trainable=True)
+
+        return input_layer_norm(input_tensor, gamma, beta)

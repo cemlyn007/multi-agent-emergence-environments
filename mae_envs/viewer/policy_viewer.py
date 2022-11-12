@@ -39,7 +39,7 @@ class PolicyViewer(mjviewer.MjViewer):
             self.seed = seed
             env.seed(seed)
         self.total_rew = 0.0
-        self.ob = env.reset()
+        self.ob, _ = env.reset()
         for policy in self.policies:
             policy.reset()
         assert env.metadata['n_actors'] % len(policies) == 0
@@ -64,7 +64,7 @@ class PolicyViewer(mjviewer.MjViewer):
             print("Pressed P")
             self.seed = max(self.seed - 1, 0)
             self.env.seed(self.seed)
-            self.ob = self.env.reset()
+            self.ob, _ = self.env.reset()
             for policy in self.policies:
                 policy.reset()
             if hasattr(self.env, "reset_goal"):
@@ -90,10 +90,10 @@ class PolicyViewer(mjviewer.MjViewer):
                     actions.append(ac)
                 action = listdict2dictnp(actions, keepdims=True)
 
-            self.ob, rew, done, env_info = self.env.step(action)
+            self.ob, rew, terminated, truncated, env_info = self.env.step(action)
             self.total_rew += rew
 
-            if done or env_info.get('discard_episode', False):
+            if terminated or truncated or env_info.get('discard_episode', False):
                 self.reset_increment()
 
             if self.display_window:
@@ -114,7 +114,7 @@ class PolicyViewer(mjviewer.MjViewer):
         self.total_rew = 0.0
         self.seed += 1
         self.env.seed(self.seed)
-        self.ob = self.env.reset()
+        self.ob, _ = self.env.reset()
         for policy in self.policies:
             policy.reset()
         if hasattr(self.env, "reset_goal"):

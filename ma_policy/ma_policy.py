@@ -5,7 +5,7 @@ import gym
 import numpy as np
 import tensorflow as tf
 from baselines.common.distributions import make_pdtype
-
+from ma_policy import layers
 from ma_policy.graph_construct import construct_tf_graph, construct_schemas_zero_state
 from ma_policy.normalizers import EMAMeanStd
 from ma_policy.util import listdict2dictnp, normc_initializer, shape_list, l2_loss
@@ -111,8 +111,8 @@ class MAPolicy(object):
         # Value network
         (vpred,
          vpred_state_out,
-         vpred_reset_ops) = construct_tf_graph(
-            processed_inp, self.v_network_spec, scope='vpred_net', act=self.build_act)
+         vpred_reset_ops) = construct_tf_graph(processed_inp, self.v_network_spec,
+                                               scope='vpred_net', act=self.build_act)
 
         self._init_vpred_head(vpred, processed_inp, 'vpred_out0', "value0")
 
@@ -185,8 +185,10 @@ class MAPolicy(object):
 
     def _init_vpred_head(self, vpred, processed_inp, vpred_scope, feedback_name):
         with tf.compat.v1.variable_scope(vpred_scope):
-            _vpred = tf.compat.v1.layers.dense(vpred['main'], 1, activation=None,
-                                     kernel_initializer=tf.keras.initializers.glorot_normal())
+            _vpred = tf.compat.v1.layers.dense(
+                vpred['main'], 1, activation=None,
+                kernel_initializer=tf.keras.initializers.glorot_normal()
+            )
             _vpred = tf.squeeze(_vpred, -1)
             normalize_axes = (0, 1)
             loss_fn = partial(l2_loss, mask=processed_inp.get(feedback_name + "_mask", None))
