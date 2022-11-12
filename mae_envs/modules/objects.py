@@ -93,7 +93,7 @@ class Boxes(EnvModule):
 
     def modify_sim_step(self, env, sim):
         # Cache qpos, qvel idxs
-        self.box_geom_idxs = np.array([sim.model.geom_name2id(f'moveable_box{i}')
+        self.box_geom_idxs = np.array([sim.geom_name2id[f'moveable_box{i}']
                                        for i in range(self.curr_n_boxes)])
         self.box_qpos_idxs = np.array([qpos_idxs_from_joint_prefix(sim, f'moveable_box{i}:')
                                        for i in range(self.curr_n_boxes)])
@@ -180,12 +180,9 @@ class Ramps(EnvModule):
 
     def modify_sim_step(self, env, sim):
         # Cache qpos, qvel idxs
-        self.ramp_qpos_idxs = np.array([qpos_idxs_from_joint_prefix(sim, f'ramp{i}')
-                                        for i in range(self.n_ramps)])
-        self.ramp_qvel_idxs = np.array([qvel_idxs_from_joint_prefix(sim, f'ramp{i}')
-                                        for i in range(self.n_ramps)])
-        self.ramp_geom_idxs = np.array([sim.model.geom_name2id(f'ramp{i}:ramp')
-                                        for i in range(self.n_ramps)])
+        self.ramp_qpos_idxs = np.array([qpos_idxs_from_joint_prefix(sim, f'ramp{i}') for i in range(self.n_ramps)])
+        self.ramp_qvel_idxs = np.array([qvel_idxs_from_joint_prefix(sim, f'ramp{i}') for i in range(self.n_ramps)])
+        self.ramp_geom_idxs = np.array([sim.geom_name2id[f'ramp{i}:ramp'] for i in range(self.n_ramps)])
 
     def observation_step(self, env, sim):
         qpos = sim.data.qpos.copy()

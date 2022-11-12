@@ -39,10 +39,12 @@ class DiscretizeActionWrapper(gym.ActionWrapper):
         self.discrete_to_continuous_act_map = []
         for i, ac_space in enumerate(self.action_space.spaces[action_key].spaces):
             assert isinstance(ac_space, Box)
-            action_map = np.array([np.linspace(low, high, nbuckets)
+            action_map = np.array([np.linspace(low, high, nbuckets, dtype=ac_space.dtype)
                                    for low, high in zip(ac_space.low, ac_space.high)])
-            _nbuckets = np.ones((len(action_map))) * nbuckets
-            self.action_space.spaces[action_key].spaces[i] = gym.spaces.MultiDiscrete(_nbuckets)
+            _nbuckets = np.ones(len(action_map)) * nbuckets
+            new = list(self.action_space.spaces[action_key].spaces)
+            new[i] = gym.spaces.MultiDiscrete(_nbuckets)
+            self.action_space.spaces[action_key].spaces = tuple(new)
             self.discrete_to_continuous_act_map.append(action_map)
         self.discrete_to_continuous_act_map = np.array(self.discrete_to_continuous_act_map)
 
@@ -111,14 +113,14 @@ class MaskActionWrapper(gym.Wrapper):
         self.mask_keys = mask_keys
 
     def reset(self):
-        self.prev_obs = self.env.reset()
-        return deepcopy(self.prev_obs)
+        self.prev_obs, self.prev_info = self.env.reset()
+        return deepcopy(self.prev_obs), self.prev_info
 
     def step(self, action):
         mask = np.concatenate([self.prev_obs[k] for k in self.mask_keys], -1)
         action[self.action_key] = np.logical_and(action[self.action_key], mask)
-        self.prev_obs, rew, done, info = self.env.step(action)
-        return deepcopy(self.prev_obs), rew, done, info
+        self.prev_obs, rew, terminated, truncated, info = self.env.step(action)
+        return deepcopy(self.prev_obs), rew, terminated, truncated, info
 
 
 class AddConstantObservationsWrapper(gym.ObservationWrapper):

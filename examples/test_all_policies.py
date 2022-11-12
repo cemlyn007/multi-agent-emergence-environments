@@ -20,7 +20,8 @@ class ExamineTest(unittest.TestCase):
             with self.assertRaises(subprocess.TimeoutExpired):
                 subprocess.check_call(
                     ["/usr/bin/env", "python", EXAMINE_FILE_PATH, os.path.join(EXAMPLES_DIR, env)],
-                    timeout=10)
+                    timeout=10
+                )
 
 
     def test_examine_policies(self):
@@ -36,4 +37,5 @@ class ExamineTest(unittest.TestCase):
             with self.assertRaises(subprocess.TimeoutExpired):
                 subprocess.check_call(
                     ["/usr/bin/env", "python", EXAMINE_FILE_PATH, os.path.join(EXAMPLES_DIR, env), os.path.join(EXAMPLES_DIR, policy)],
-                    timeout=15)
+                    timeout=15
+                )

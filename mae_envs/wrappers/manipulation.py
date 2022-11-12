@@ -49,7 +49,7 @@ class GrabObjWrapper(gym.Wrapper):
         return obs
 
     def reset(self):
-        obs = self.env.reset()
+        obs, info = self.env.reset()
         sim = self.unwrapped.sim
 
         if self.obj_in_game_metadata_keys is not None:
@@ -60,17 +60,17 @@ class GrabObjWrapper(gym.Wrapper):
         self.n_obj = len(actual_body_names)
 
         # Cache body ids
-        self.obj_body_idxs = np.array([sim.model.body_name2id(body_name) for body_name in actual_body_names])
-        self.agent_body_idxs = np.array([sim.model.body_name2id(f"agent{i}:particle") for i in range(self.n_agents)])
+        self.obj_body_idxs = np.array([sim.body_name2id[body_name] for body_name in actual_body_names])
+        self.agent_body_idxs = np.array([sim.body_name2id[f"agent{i}:particle"] for i in range(self.n_agents)])
 
         # Cache geom ids
-        self.obj_geom_ids = np.array([sim.model.geom_name2id(body_name) for body_name in actual_body_names])
-        self.agent_geom_ids = np.array([sim.model.geom_name2id(f'agent{i}:agent') for i in range(self.n_agents)])
+        self.obj_geom_ids = np.array([sim.geom_name2id[body_name] for body_name in actual_body_names])
+        self.agent_geom_ids = np.array([sim.geom_name2id[f'agent{i}:agent'] for i in range(self.n_agents)])
 
         # Cache constraint ids
         self.agent_eq_ids = np.array(
             [i for i, obj1 in enumerate(sim.model.eq_obj1id)
-             if sim.model.body_names[obj1] == f"agent{i}:particle"])
+             if sim.body_names[obj1] == f"agent{i}:particle"])
         assert len(self.agent_eq_ids) == self.n_agents
 
         # turn off equality constraints
@@ -78,7 +78,7 @@ class GrabObjWrapper(gym.Wrapper):
         self.obj_grabbed = np.zeros((self.n_agents, self.n_obj), dtype=bool)
         self.last_obj_grabbed = np.zeros((self.n_agents, self.n_obj), dtype=bool)
 
-        return self.observation(obs)
+        return self.observation(obs), info
 
     def grab_obj(self, action):
         '''
@@ -89,14 +89,15 @@ class GrabObjWrapper(gym.Wrapper):
         action_pull = action['action_pull'][:, self.actual_body_slice]
         sim = self.unwrapped.sim
 
-        agent_pos = sim.data.body_xpos[self.agent_body_idxs]
-        obj_pos = sim.data.body_xpos[self.obj_body_idxs]
+        agent_pos = sim.data.xpos[self.agent_body_idxs]
+        obj_pos = sim.data.xpos[self.obj_body_idxs]
 
         obj_width = sim.model.geom_size[self.obj_geom_ids]
-        obj_quat = sim.data.body_xquat[self.obj_body_idxs]
+        obj_quat = sim.data.xquat[self.obj_body_idxs]
         assert len(obj_width) == len(obj_quat), (
-            "Number of object widths must be equal to number of quaternions for direct distance calculation method. " +
-            "This might be caused by a body that contains several geoms.")
+            "Number of object widths must be equal to number of quaternions for direct distance calculation method. "
+            "This might be caused by a body that contains several geoms."
+        )
         obj_dist = dist_pt_to_cuboid(agent_pos, obj_pos, obj_width, obj_quat)
 
         allowed_and_desired = np.logical_and(action_pull, obj_dist <= self.grab_radius)
@@ -132,14 +133,14 @@ class GrabObjWrapper(gym.Wrapper):
         self.obj_grabbed[agent_with_valid_grab, closest_obj[agent_with_valid_grab]] = 1
 
         # If there are new grabs, then setup the weld constraint parameters
-        new_grabs = np.logical_and(
-            valid_grabs, np.any(self.obj_grabbed != self.last_obj_grabbed, axis=-1))
+        new_grabs = np.logical_and(valid_grabs,
+                                   np.any(self.obj_grabbed != self.last_obj_grabbed, axis=-1))
         for agent_idx in np.argwhere(new_grabs)[:, 0]:
-            agent_rot = sim.data.body_xmat[self.agent_body_idxs[agent_idx]].reshape((3, 3))
-            obj_rot = sim.data.body_xmat[self.obj_body_idxs[closest_obj[agent_idx]]].reshape((3, 3))
+            agent_rot = sim.data.xmat[self.agent_body_idxs[agent_idx]].reshape((3, 3))
+            obj_rot = sim.data.xmat[self.obj_body_idxs[closest_obj[agent_idx]]].reshape((3, 3))
             # Need to use the geom xpos rather than the qpos
-            obj_pos = sim.data.body_xpos[self.obj_body_idxs[closest_obj[agent_idx]]]
-            agent_pos = sim.data.body_xpos[self.agent_body_idxs[agent_idx]]
+            obj_pos = sim.data.xpos[self.obj_body_idxs[closest_obj[agent_idx]]]
+            agent_pos = sim.data.xpos[self.agent_body_idxs[agent_idx]]
 
             grab_vec = agent_pos - obj_pos
 
@@ -155,8 +156,8 @@ class GrabObjWrapper(gym.Wrapper):
 
     def step(self, action):
         self.grab_obj(action)
-        obs, rew, done, info = self.env.step(action)
-        return self.observation(obs), rew, done, info
+        obs, rew, terminated, truncated, info = self.env.step(action)
+        return self.observation(obs), rew, terminated, truncated, info
 
 
 class GrabClosestWrapper(gym.ActionWrapper):
@@ -169,8 +170,7 @@ class GrabClosestWrapper(gym.ActionWrapper):
         super().__init__(env)
         self.action_space = deepcopy(self.action_space)
         self.n_obj = len(self.action_space.spaces['action_pull'].spaces[0].nvec)
-        self.action_space.spaces['action_pull'] = (
-            Tuple([Discrete(2) for _ in range(self.unwrapped.n_agents)]))
+        self.action_space.spaces['action_pull'] = (Tuple([Discrete(2) for _ in range(self.unwrapped.n_agents)]))
 
     def action(self, action):
         action = deepcopy(action)
@@ -233,7 +233,7 @@ class LockObjWrapper(gym.Wrapper):
         return obs
 
     def reset(self):
-        obs = self.env.reset()
+        obs, info = self.env.reset()
         sim = self.unwrapped.sim
 
         if self.obj_in_game_metadata_keys is not None:
@@ -245,12 +245,12 @@ class LockObjWrapper(gym.Wrapper):
         self.n_obj = len(actual_body_names)
 
         # Cache ids
-        self.obj_body_idxs = np.array([sim.model.body_name2id(body_name) for body_name in actual_body_names])
+        self.obj_body_idxs = np.array([sim.body_name2id[body_name] for body_name in actual_body_names])
         self.obj_jnt_idxs = [np.where(sim.model.jnt_bodyid == body_idx)[0] for body_idx in self.obj_body_idxs]
         self.obj_geom_ids = [np.where(sim.model.geom_bodyid == body_idx)[0] for body_idx in self.obj_body_idxs]
-        self.agent_body_idxs = np.array([sim.model.body_name2id(f"agent{i}:particle") for i in range(self.n_agents)])
+        self.agent_body_idxs = np.array([sim.body_name2id[f"agent{i}:particle"] for i in range(self.n_agents)])
         self.agent_body_idxs = self.agent_body_idxs[self.agent_idx_allowed_to_lock]
-        self.agent_geom_ids = np.array([sim.model.geom_name2id(f'agent{i}:agent') for i in range(self.n_agents)])
+        self.agent_geom_ids = np.array([sim.geom_name2id[f'agent{i}:agent'] for i in range(self.n_agents)])
         self.agent_geom_ids = self.agent_geom_ids[self.agent_idx_allowed_to_lock]
 
         self.unlock_objs()
@@ -262,7 +262,7 @@ class LockObjWrapper(gym.Wrapper):
         else:
             self.agent_allowed_to_lock_mask = np.ones((self.n_agents, self.n_obj))
 
-        return self.observation(obs)
+        return self.observation(obs), info
 
     def lock_obj(self, action_lock):
         '''
@@ -273,14 +273,15 @@ class LockObjWrapper(gym.Wrapper):
         sim = self.unwrapped.sim
         action_lock = action_lock[self.agent_idx_allowed_to_lock]
         action_lock = action_lock[:, self.actual_body_slice]
-        agent_pos = sim.data.body_xpos[self.agent_body_idxs]
-        obj_pos = sim.data.body_xpos[self.obj_body_idxs]
+        agent_pos = sim.data.xpos[self.agent_body_idxs]
+        obj_pos = sim.data.xpos[self.obj_body_idxs]
 
         obj_width = sim.model.geom_size[np.concatenate(self.obj_geom_ids)]
-        obj_quat = sim.data.body_xquat[self.obj_body_idxs]
+        obj_quat = sim.data.xquat[self.obj_body_idxs]
         assert len(obj_width) == len(obj_quat), (
-            "Number of object widths must be equal to number of quaternions for direct distance calculation method. " +
-            "This might be caused by a body that contains several geoms.")
+            "Number of object widths must be equal to number of quaternions for direct distance calculation method. "
+            "This might be caused by a body that contains several geoms."
+        )
         obj_dist = dist_pt_to_cuboid(agent_pos, obj_pos, obj_width, obj_quat)
 
         allowed_and_desired = np.logical_and(action_lock, obj_dist <= self.lock_radius)
@@ -340,8 +341,9 @@ class LockObjWrapper(gym.Wrapper):
         # For objs we need to newly lock, set the joint ranges to the current qpos of the obj.
         for obj in np.argwhere(new_objs_to_lock)[:, 0]:
             sim.model.jnt_range[self.obj_jnt_idxs[obj], :] = sim.data.qpos[self.obj_jnt_idxs[obj], None]
-            self.which_locked[obj] = np.random.choice(self.agent_idx_allowed_to_lock[
-                        np.argwhere(allowed_and_desired[:, obj]).flatten()])
+            self.which_locked[obj] = np.random.choice(
+                self.agent_idx_allowed_to_lock[np.argwhere(allowed_and_desired[:, obj]).flatten()]
+            )
 
         self.obj_locked = np.logical_or(np.logical_and(self.obj_locked, ~objs_to_unlock), objs_to_lock)
 
@@ -354,14 +356,14 @@ class LockObjWrapper(gym.Wrapper):
 
     def step(self, action):
         self.lock_obj(action[f'action_{self.ac_obs_prefix}glue'])
-        obs, rew, done, info = self.env.step(action)
+        obs, rew, terminated, truncated, info = self.env.step(action)
 
         if self.agent_allowed_to_lock_keys is not None:
             self.agent_allowed_to_lock_mask = np.concatenate([obs[k] for k in self.agent_allowed_to_lock_keys])
         else:
             self.agent_allowed_to_lock_mask = np.ones((self.n_agents, self.n_obj))
 
-        return self.observation(obs), rew, done, info
+        return self.observation(obs), rew, terminated, truncated, info
 
 
 class LockAllWrapper(gym.ActionWrapper):

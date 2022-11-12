@@ -5,7 +5,7 @@ import logging
 import sys
 from copy import deepcopy
 from functools import partial
-from collections import OrderedDict
+
 from baselines.common.distributions import make_pdtype
 
 from ma_policy.util import listdict2dictnp, normc_initializer, shape_list, l2_loss
@@ -108,7 +108,7 @@ class MAPolicy(object):
 
         self._normalize_inputs(processed_inp)
 
-        self.state_out = OrderedDict()
+        self.state_out = dict()
 
         # Value network
         (vpred,

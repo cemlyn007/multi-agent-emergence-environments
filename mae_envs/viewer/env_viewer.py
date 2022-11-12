@@ -119,16 +119,16 @@ class EnvViewer(mjviewer.MjViewer):
 
     def run(self, once=False):
         while True:
-            _, _, _, env_info = self.env.step(self.action)
+            _, _, _, _, env_info = self.env.step(self.action)
             if env_info.get('discard_episode', False):
                 self.env.reset()
-            self.add_overlay(mujoco.mjtGridPos.GRID_TOPRIGHT, "Reset env; (current seed: {})".format(self.seed), "N - next / P - previous ")
-            self.add_overlay(mujoco.mjtGridPos.GRID_TOPRIGHT, "Apply action", "A (-0.05) / Z (+0.05)")
-            self.add_overlay(mujoco.mjtGridPos.GRID_TOPRIGHT, "on agent index %d out %d" % (self.agent_mod_index, self.n_agents), "Y / U")
-            self.add_overlay(mujoco.mjtGridPos.GRID_TOPRIGHT, f"on action type {self.action_types[self.action_type_mod_index]}", "G / B")
-            self.add_overlay(mujoco.mjtGridPos.GRID_TOPRIGHT, "on action index %d out %d" % (self.action_mod_index, self.num_action[self.action_type_mod_index]), "J / K")
-            self.add_overlay(mujoco.mjtGridPos.GRID_BOTTOMRIGHT, "Reset took", "%.2f sec." % (sum(self.elapsed) / len(self.elapsed)))
-            self.add_overlay(mujoco.mjtGridPos.GRID_BOTTOMRIGHT, "Action", str(self.action))
+            self.add_overlay(mujoco.mjtGridPos.mjGRID_TOPRIGHT, "Reset env; (current seed: {})".format(self.seed), "N - next / P - previous ")
+            self.add_overlay(mujoco.mjtGridPos.mjGRID_TOPRIGHT, "Apply action", "A (-0.05) / Z (+0.05)")
+            self.add_overlay(mujoco.mjtGridPos.mjGRID_TOPRIGHT, "on agent index %d out %d" % (self.agent_mod_index, self.n_agents), "Y / U")
+            self.add_overlay(mujoco.mjtGridPos.mjGRID_TOPRIGHT, f"on action type {self.action_types[self.action_type_mod_index]}", "G / B")
+            self.add_overlay(mujoco.mjtGridPos.mjGRID_TOPRIGHT, "on action index %d out %d" % (self.action_mod_index, self.num_action[self.action_type_mod_index]), "J / K")
+            self.add_overlay(mujoco.mjtGridPos.mjGRID_BOTTOMRIGHT, "Reset took", "%.2f sec." % (sum(self.elapsed) / len(self.elapsed)))
+            self.add_overlay(mujoco.mjtGridPos.mjGRID_BOTTOMRIGHT, "Action", str(self.action))
             self.render()
             if once:
                 return

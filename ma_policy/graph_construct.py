@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from collections import OrderedDict
+
 from copy import deepcopy
 import logging
 import traceback
@@ -95,7 +95,7 @@ def construct_tf_graph(all_inputs, spec, act, scope='', reuse=False,):
     inp['main'] = inp['observation_self']
 
     valid_activations = {'relu': tf.nn.relu, 'tanh': tf.tanh, '': None}
-    state_variables = OrderedDict()
+    state_variables = dict()
     logger.info(f"Spec:\n{spec}")
     entity_locations = {}
     reset_ops = []
@@ -229,8 +229,8 @@ def construct_schemas_zero_state(spec, ob_space, scope=''):
         Takes a network spec (as specified in construct_tf_graph docstring) and returns
             input schemas and zero states.
     '''
-    schemas = OrderedDict()
-    zero_states = OrderedDict()
+    schemas = dict()
+    zero_states = dict()
     for i, layer in enumerate(spec):
         layer = deepcopy(layer)
         layer_type = layer.pop('layer_type')

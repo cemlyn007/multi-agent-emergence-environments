@@ -21,7 +21,8 @@ class PreparationPhase(gym.Wrapper):
     def reset(self):
         self.step_counter = 0
         self.in_prep_phase = True
-        return self.observation(self.env.reset())
+        obs, info = self.env.reset()
+        return self.observation(obs), info
 
     def reward(self, reward):
         if self.in_prep_phase:
@@ -32,17 +33,15 @@ class PreparationPhase(gym.Wrapper):
     def observation(self, obs):
         obs['prep_obs'] = (np.ones((self.n_agents, 1)) *
                            np.minimum(1.0, self.step_counter / (self.prep_time + 1e-5)))
-
         return obs
 
     def step(self, action):
-        obs, rew, done, info = self.env.step(action)
+        obs, rew, terminated, truncated, info = self.env.step(action)
         rew = self.reward(rew)
         self.step_counter += 1
         self.in_prep_phase = self.step_counter < self.prep_time
         info['in_prep_phase'] = self.in_prep_phase
-
-        return self.observation(obs), rew, done, info
+        return self.observation(obs), rew, terminated, truncated, info
 
 
 class NoActionsInPrepPhase(gym.Wrapper):
@@ -59,9 +58,9 @@ class NoActionsInPrepPhase(gym.Wrapper):
         return obs
 
     def step(self, action):
-        obs, rew, done, info = self.env.step(self.action(action))
+        obs, rew, terminated, truncated, info = self.env.step(self.action(action))
         self.in_prep_phase = info['in_prep_phase']
-        return obs, rew, done, info
+        return obs, rew, terminated, truncated, info
 
     def action(self, action):
         ac = deepcopy(action)

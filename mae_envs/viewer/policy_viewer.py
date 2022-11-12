@@ -98,12 +98,12 @@ class PolicyViewer(mjviewer.MjViewer):
 
             if self.display_window:
 
-                self.add_overlay(mujoco.mjtGridPos.GRID_TOPRIGHT, "Reset env; (current seed: {})".format(self.seed),
+                self.add_overlay(mujoco.mjtGridPos.mjGRID_TOPRIGHT, "Reset env; (current seed: {})".format(self.seed),
                                  "N - next / P - previous ")
-                self.add_overlay(mujoco.mjtGridPos.GRID_TOPRIGHT, "Reward", str(self.total_rew))
+                self.add_overlay(mujoco.mjtGridPos.mjGRID_TOPRIGHT, "Reward", str(self.total_rew))
                 if hasattr(self.env.unwrapped, "viewer_stats"):
                     for k, v in self.env.unwrapped.viewer_stats.items():
-                        self.add_overlay(mujoco.mjtGridPos.GRID_TOPRIGHT, k, str(v))
+                        self.add_overlay(mujoco.mjtGridPos.mjGRID_TOPRIGHT, k, str(v))
 
                 self.env.render()
 

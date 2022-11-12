@@ -133,7 +133,7 @@ class HideAndSeekRewardWrapper(gym.Wrapper):
                                      [f'seeker{i}' for i in range(self.n_seekers)]
 
     def step(self, action):
-        obs, rew, done, info = self.env.step(action)
+        obs, rew, terminated, truncated, info = self.env.step(action)
 
         this_rew = np.ones((self.n_agents,))
         this_rew[:self.n_hiders][np.any(obs['mask_aa_obs'][self.n_hiders:, :self.n_hiders], 0)] = -1.0
@@ -152,7 +152,7 @@ class HideAndSeekRewardWrapper(gym.Wrapper):
 
         this_rew *= self.reward_scale
         rew += this_rew
-        return obs, rew, done, info
+        return obs, rew, terminated, truncated, info
 
 
 class MaskUnseenAction(gym.Wrapper):

@@ -1,5 +1,5 @@
 import numpy as np
-from collections import OrderedDict
+
 from mujoco_worldgen.transforms import closure_transform
 
 
@@ -10,9 +10,9 @@ def add_weld_equality_constraint_transform(name, body_name1, body_name2):
     '''
     def fun(xml_dict):
         if 'equality' not in xml_dict:
-            xml_dict['equality'] = OrderedDict()
+            xml_dict['equality'] = dict()
             xml_dict['equality']['weld'] = []
-        constraint = OrderedDict()
+        constraint = dict()
         constraint['@name'] = name
         constraint['@body1'] = body_name1
         constraint['@body2'] = body_name2

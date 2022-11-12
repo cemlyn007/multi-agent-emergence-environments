@@ -1,7 +1,7 @@
 import gym
 import logging
 import numpy as np
-from collections import OrderedDict
+
 from mae_envs.envs.base import Base
 from mae_envs.wrappers.multi_agent import (SplitMultiAgentActions,
                                            SplitObservations, SelectKeysWrapper)
@@ -23,7 +23,7 @@ def zero_action(ac_space):
     '''
         Define default zero action for when an agent dies such that it stays in place and doesn't do anything.
     '''
-    ac = OrderedDict()
+    ac = dict()
     for ac_key, s in ac_space.spaces.items():
         assert isinstance(s, gym.spaces.Tuple), f"space {s} is not a Tuple"
         single_agent_space = s.spaces[0]

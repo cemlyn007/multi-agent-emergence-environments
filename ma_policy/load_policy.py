@@ -54,11 +54,12 @@ def load_policy(path, env=None, scope='policy'):
             scope (string): The base scope for the policy variables
     '''
     # TODO this will probably need to be changed when trying to run policy on GPU
-    if tf.get_default_session() is None:
-        tf_config = tf.ConfigProto(
+    if tf.compat.v1.get_default_session() is None:
+        tf_config = tf.compat.v1.ConfigProto(
             inter_op_parallelism_threads=1,
-            intra_op_parallelism_threads=1)
-        sess = tf.Session(config=tf_config)
+            intra_op_parallelism_threads=1
+        )
+        sess = tf.compat.v1.Session(config=tf_config)
         sess.__enter__()
 
     policy_dict = dict(np.load(path))

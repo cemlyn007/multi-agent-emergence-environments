@@ -71,8 +71,8 @@ class Agents(EnvModule):
                                          for i in range(self.n_agents)])
         self.agent_qvel_idxs = np.array([qvel_idxs_from_joint_prefix(sim, f'agent{i}')
                                         for i in range(self.n_agents)])
-        env.metadata['agent_geom_idxs'] = [sim.model.geom_name2id(f'agent{i}:agent')
-                                           for i in range(self.n_agents)]
+
+        env.metadata['agent_geom_idxs'] = [sim.geom_name2id[f'agent{i}:agent'] for i in range(self.n_agents)]
 
     def observation_step(self, env, sim):
         qpos = sim.data.qpos.copy()
