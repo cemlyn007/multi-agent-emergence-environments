@@ -1,17 +1,15 @@
-import tensorflow as tf
-import numpy as np
-import gym
-import logging
-import sys
 from copy import deepcopy
 from functools import partial
 
+import gym
+import numpy as np
+import tensorflow as tf
 from baselines.common.distributions import make_pdtype
 
+from ma_policy.graph_construct import construct_tf_graph, construct_schemas_zero_state
+from ma_policy.normalizers import EMAMeanStd
 from ma_policy.util import listdict2dictnp, normc_initializer, shape_list, l2_loss
 from ma_policy.variable_schema import VariableSchema, BATCH, TIMESTEPS
-from ma_policy.normalizers import EMAMeanStd
-from ma_policy.graph_construct import construct_tf_graph, construct_schemas_zero_state
 
 
 class MAPolicy(object):
@@ -85,14 +83,14 @@ class MAPolicy(object):
         self.zero_state.update(pi_zero_states)
 
         if build_act:
-            with tf.variable_scope(self.scope, reuse=self.reuse):
+            with tf.compat.v1.variable_scope(self.scope, reuse=self.reuse):
                 self.phs = {name: schema.placeholder(name=name)
                             for name, schema in self.get_input_schemas().items()}
             self.build(self.phs)
 
     def build(self, inputs):
-        with tf.variable_scope(self.scope, reuse=self.reuse):
-            self.full_scope_name = tf.get_variable_scope().name
+        with tf.compat.v1.variable_scope(self.scope, reuse=self.reuse):
+            self.full_scope_name = tf.compat.v1.get_variable_scope().name
             self._init(inputs, **self.kwargs)
 
     def _init(self, inputs, gaussian_fixed_var=True, **kwargs):
@@ -138,16 +136,16 @@ class MAPolicy(object):
         self.reset()
 
     def _init_policy_out(self, pi, taken_actions):
-        with tf.variable_scope('policy_out'):
+        with tf.compat.v1.variable_scope('policy_out'):
             self.pdparams = {}
             for k in self.pdtypes.keys():
-                with tf.variable_scope(k):
+                with tf.compat.v1.variable_scope(k):
                     if self.gaussian_fixed_var and isinstance(self.ac_space.spaces[k], gym.spaces.Box):
-                        mean = tf.layers.dense(pi["main"],
+                        mean = tf.compat.v1.layers.dense(pi["main"],
                                                self.pdtypes[k].param_shape()[0] // 2,
                                                kernel_initializer=normc_initializer(0.01),
                                                activation=None)
-                        logstd = tf.get_variable(name="logstd",
+                        logstd = tf.compat.v1.get_variable(name="logstd",
                                                  shape=[1, self.pdtypes[k].param_shape()[0] // 2],
                                                  initializer=tf.zeros_initializer())
                         self.pdparams[k] = tf.concat([mean, mean * 0.0 + logstd], axis=2)
@@ -164,31 +162,31 @@ class MAPolicy(object):
                         else:
                             assert False
                     else:
-                        self.pdparams[k] = tf.layers.dense(pi["main"],
+                        self.pdparams[k] = tf.compat.v1.layers.dense(pi["main"],
                                                            self.pdtypes[k].param_shape()[0],
                                                            kernel_initializer=normc_initializer(0.01),
                                                            activation=None)
 
-            with tf.variable_scope('pds'):
+            with tf.compat.v1.variable_scope('pds'):
                 self.pds = {k: pdtype.pdfromflat(self.pdparams[k])
                             for k, pdtype in self.pdtypes.items()}
 
-            with tf.variable_scope('sampled_action'):
+            with tf.compat.v1.variable_scope('sampled_action'):
                 self.sampled_action = {k: pd.sample() if self.stochastic else pd.mode()
                                        for k, pd in self.pds.items()}
-            with tf.variable_scope('sampled_action_logp'):
+            with tf.compat.v1.variable_scope('sampled_action_logp'):
                 self.sampled_action_logp = sum([self.pds[k].logp(self.sampled_action[k])
                                                 for k in self.pdtypes.keys()])
-            with tf.variable_scope('entropy'):
+            with tf.compat.v1.variable_scope('entropy'):
                 self.entropy = sum([pd.entropy() for pd in self.pds.values()])
-            with tf.variable_scope('taken_action_logp'):
+            with tf.compat.v1.variable_scope('taken_action_logp'):
                 self.taken_action_logp = sum([self.pds[k].logp(taken_actions[k])
                                               for k in self.pdtypes.keys()])
 
     def _init_vpred_head(self, vpred, processed_inp, vpred_scope, feedback_name):
-        with tf.variable_scope(vpred_scope):
-            _vpred = tf.layers.dense(vpred['main'], 1, activation=None,
-                                     kernel_initializer=tf.contrib.layers.xavier_initializer())
+        with tf.compat.v1.variable_scope(vpred_scope):
+            _vpred = tf.compat.v1.layers.dense(vpred['main'], 1, activation=None,
+                                     kernel_initializer=tf.keras.initializers.glorot_normal())
             _vpred = tf.squeeze(_vpred, -1)
             normalize_axes = (0, 1)
             loss_fn = partial(l2_loss, mask=processed_inp.get(feedback_name + "_mask", None))
@@ -200,7 +198,7 @@ class MAPolicy(object):
             self.add_running_mean_std(rms=self.value_rms, name='feedback.value0', axes=normalize_axes)
 
     def _normalize_inputs(self, processed_inp):
-        with tf.variable_scope('normalize_self_obs'):
+        with tf.compat.v1.variable_scope('normalize_self_obs'):
             ob_rms_self = EMAMeanStd(shape=self.ob_space.spaces['observation_self'].shape,
                                      scope="obsfilter", beta=self._ema_beta, per_element_update=False)
             self.add_running_mean_std("observation_self", ob_rms_self, axes=(0, 1))
@@ -214,7 +212,7 @@ class MAPolicy(object):
             elif 'mask' in key:  # Don't normalize observation masks
                 pass
             else:
-                with tf.variable_scope(f'normalize_{key}'):
+                with tf.compat.v1.variable_scope(f'normalize_{key}'):
                     ob_rms = EMAMeanStd(shape=self.ob_space.spaces[key].shape[1:],
                                         scope=f"obsfilter/{key}", beta=self._ema_beta, per_element_update=False)
                     normalized = (processed_inp[key] - ob_rms.mean) / ob_rms.std
@@ -299,7 +297,7 @@ class MAPolicy(object):
         feed_dict = {self.phs[k]: v for k, v in inputs.items()}
         feed_dict.update(extra_feed_dict)
 
-        outputs = tf.get_default_session().run(outputs, feed_dict)
+        outputs = tf.compat.v1.get_default_session().run(outputs, feed_dict)
         self.state = outputs['state']
 
         # Remove time dimension from outputs
@@ -316,11 +314,11 @@ class MAPolicy(object):
         return preprocess_act_output(outputs['ac']), info
 
     def get_variables(self):
-        variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, self.full_scope_name + '/')
+        variables = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES, self.full_scope_name + '/')
         return variables
 
     def get_trainable_variables(self):
-        variables = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.full_scope_name + '/')
+        variables = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, self.full_scope_name + '/')
         if self.trainable_vars is not None:
             variables = [v for v in variables
                          if any([tr_v in v.name for tr_v in self.trainable_vars])]
@@ -332,8 +330,8 @@ class MAPolicy(object):
 
     def reset(self):
         self.state = deepcopy(self.zero_state)
-        if tf.get_default_session() is not None:
-            tf.get_default_session().run(self._reset_ops)
+        if tf.compat.v1.get_default_session() is not None:
+            tf.compat.v1.get_default_session().run(self._reset_ops)
 
     def set_state(self, state):
         self.state = deepcopy(state)

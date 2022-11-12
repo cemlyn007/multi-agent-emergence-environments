@@ -32,7 +32,7 @@ def load_variables(policy, weights):
         var_name = os.path.normpath(var.name)
         if var_name not in weights:
             logging.warning(f"{var_name} was not found in weights dict. This will be reinitialized.")
-            tf.get_default_session().run(var.initializer)
+            tf.compat.v1.get_default_session().run(var.initializer)
         else:
             try:
                 assert np.all(np.array(shape_list(var)) == np.array(weights[var_name].shape))
@@ -41,7 +41,7 @@ def load_variables(policy, weights):
                 traceback.print_exc(file=sys.stdout)
                 print(f"Error assigning weights of shape {weights[var_name].shape} to {var}")
                 sys.exit()
-    tf.get_default_session().run(assign_ops)
+    tf.compat.v1.get_default_session().run(assign_ops)
 
 
 def load_policy(path, env=None, scope='policy'):
