@@ -69,7 +69,7 @@ class ConstructionDenseRewardWrapper(gym.Wrapper):
         self.use_corners = use_corners
 
     def step(self, action):
-        obs, rew, done, info = self.env.step(action)
+        obs, rew, terminated, truncated, info = self.env.step(action)
         box_site_dist = (obs['boxcorner_sitecorner_dist']
                          if self.use_corners
                          else obs['box_site_dist'])
@@ -77,7 +77,7 @@ class ConstructionDenseRewardWrapper(gym.Wrapper):
         site_box_smoothmin_dists = (np.sum(box_site_dist * scaling_factors, axis=0) /
                                     np.sum(scaling_factors, axis=0))
         rew -= np.mean(site_box_smoothmin_dists) * self.reward_scale
-        return obs, rew, done, info
+        return obs, rew, terminated, truncated, info
 
 
 class ConstructionCompletedRewardWrapper(gym.Wrapper):
@@ -106,7 +106,7 @@ class ConstructionCompletedRewardWrapper(gym.Wrapper):
         return obs
 
     def step(self, action):
-        obs, rew, done, info = self.env.step(action)
+        obs, rew, terminated, truncated, info = self.env.step(action)
         site_dist_to_closest_box = obs['box_site_dist'].min(axis=0)
         sitecorner_dist_to_closest_boxcorner = obs['boxcorner_sitecorner_dist'].min(axis=0)
         activated_sites = site_dist_to_closest_box < self.site_activation_radius
@@ -119,9 +119,9 @@ class ConstructionCompletedRewardWrapper(gym.Wrapper):
 
         if construction_completed:
             rew += self.n_sites * self.reward_scale
-            done = True
+            terminated = True
 
-        return obs, rew, done, info
+        return obs, rew, terminated, truncated, info
 
 
 def make_env(n_substeps=15, horizon=80, deterministic_mode=False,

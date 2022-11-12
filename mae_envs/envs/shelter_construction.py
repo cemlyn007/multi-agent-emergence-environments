@@ -59,7 +59,7 @@ class ShelterRewardWrapper(gym.Wrapper):
         return obs
 
     def step(self, action):
-        obs, rew, done, info = self.env.step(action)
+        obs, rew, terminated, truncated, info = self.env.step(action)
         target_geom = obs['static_cylinder_geom_idxs'][0, 0]
         rew = rew + np.zeros((self.unwrapped.n_agents, 1))
         for pt in self.ray_start_points:
@@ -68,7 +68,7 @@ class ShelterRewardWrapper(gym.Wrapper):
                 rew -= 1
 
         rew *= self.reward_scale
-        return obs, rew, done, info
+        return obs, rew, terminated, truncated, info
 
 
 def make_env(n_substeps=15, horizon=80, deterministic_mode=False,

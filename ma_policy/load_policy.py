@@ -62,7 +62,7 @@ def load_policy(path, env=None, scope='policy'):
         sess = tf.compat.v1.Session(config=tf_config)
         sess.__enter__()
 
-    policy_dict = dict(np.load(path))
+    policy_dict = dict(np.load(path, allow_pickle=True))
     policy_fn_and_args_raw = pickle.loads(policy_dict['policy_fn_and_args'])
     policy_args = policy_fn_and_args_raw['args']
     policy_args['scope'] = scope

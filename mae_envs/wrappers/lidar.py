@@ -38,22 +38,20 @@ class Lidar(gym.ObservationWrapper):
         self.lidar_rays = self.lidar_rays[None, :]
 
     def reset(self):
-        obs = self.env.reset()
+        obs, info = self.env.reset()
 
         sim = self.unwrapped.sim
 
         # Cache ids
-        self.agent_body_ids = np.array([sim.model.body_name2id(f"agent{i}:particle")
-                                        for i in range(self.n_agents)])
-        self.agent_geom_ids = np.array([sim.model.geom_name2id(f'agent{i}:agent')
-                                        for i in range(self.n_agents)])
+        self.agent_body_ids = np.array([sim.body_name2id[f"agent{i}:particle"] for i in range(self.n_agents)])
+        self.agent_geom_ids = np.array([sim.geom_name2id[f'agent{i}:agent'] for i in range(self.n_agents)])
 
         if self.visualize_lidar:
             self.lidar_ids = np.array([[sim.model.site_name2id(f"agent{i}:lidar{j}")
                                         for j in range(self.n_lidar_per_agent)]
                                        for i in range(self.n_agents)])
 
-        return self.observation(obs)
+        return self.observation(obs), info
 
     def place_lidar_ray_markers(self, agent_pos, lidar_endpoints):
         sim = self.unwrapped.sim
@@ -91,7 +89,7 @@ class Lidar(gym.ObservationWrapper):
 
     def observation(self, obs):
         sim = self.unwrapped.sim
-        agent_pos = sim.data.body_xpos[self.agent_body_ids]
+        agent_pos = sim.data.xpos[self.agent_body_ids]
 
         lidar_endpoints = agent_pos[:, None, :] + self.lidar_rays
 
@@ -112,8 +110,7 @@ class Lidar(gym.ObservationWrapper):
 
         if self.visualize_lidar:
             # recalculate lidar endpoints
-            lidar_endpoints = agent_pos[:, None, :] + \
-                    lidar[:, :, None] / self.lidar_range * self.lidar_rays
+            lidar_endpoints = agent_pos[:, None, :] + lidar[:, :, None] / self.lidar_range * self.lidar_rays
             self.place_lidar_ray_markers(agent_pos, lidar_endpoints)
             sim.model.site_rgba[self.lidar_ids, :] = np.array([0.0, 0.0, 1.0, 0.2])
             sim.forward()

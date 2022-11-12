@@ -39,7 +39,7 @@ class TrackStatWrapper(gym.Wrapper):
         self.n_food = n_food
 
     def reset(self):
-        obs = self.env.reset()
+        obs, info = self.env.reset()
         if self.n_boxes > 0:
             self.box_pos_start = obs['box_pos']
         if self.n_ramps > 0:
@@ -49,10 +49,10 @@ class TrackStatWrapper(gym.Wrapper):
 
         self.in_prep_phase = True
 
-        return obs
+        return obs, info
 
     def step(self, action):
-        obs, rew, done, info = self.env.step(action)
+        obs, rew, terminated, truncated, info = self.env.step(action)
 
         if self.n_food > 0:
             self.total_food_eaten += np.sum(obs['food_eat'])
@@ -71,7 +71,7 @@ class TrackStatWrapper(gym.Wrapper):
             if self.n_food > 0:
                 self.total_food_eaten_prep = self.total_food_eaten
 
-        if done:
+        if terminated or truncated:
             # Track statistics at end of episode
             if self.n_boxes > 0:
                 self.max_box_move = np.max(np.linalg.norm(obs['box_pos'] - self.box_pos_start, axis=-1))
@@ -98,7 +98,7 @@ class TrackStatWrapper(gym.Wrapper):
                     'food_eaten': self.total_food_eaten,
                     'food_eaten_prep': self.total_food_eaten_prep})
 
-        return obs, rew, done, info
+        return obs, rew, terminated, truncated, info
 
 
 class HideAndSeekRewardWrapper(gym.Wrapper):

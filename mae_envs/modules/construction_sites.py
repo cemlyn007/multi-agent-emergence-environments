@@ -86,11 +86,11 @@ class ConstructionSites(EnvModule):
 
     def modify_sim_step(self, env, sim):
         self.construction_site_idxs = np.array(
-            [sim.model.site_name2id(f'{self.site_name}{i}')
+            [sim.site_name2id[f'{self.site_name}{i}']
              for i in range(self.curr_n_sites)]
             )
         self.construction_site_corner_idxs = np.array(
-            [sim.model.site_name2id(f'{self.site_name}{i}_corner{j}')
+            [sim.site_name2id[f'{self.site_name}{i}_corner{j}']
              for i in range(self.curr_n_sites) for j in range(4)]
             )
 

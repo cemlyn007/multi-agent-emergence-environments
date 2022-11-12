@@ -100,7 +100,7 @@ class Boxes(EnvModule):
         self.box_qvel_idxs = np.array([qvel_idxs_from_joint_prefix(sim, f'moveable_box{i}:')
                                        for i in range(self.curr_n_boxes)])
         if self.mark_box_corners:
-            self.box_corner_idxs = np.array([sim.model.site_name2id(f'moveable_box{i}_corner{j}')
+            self.box_corner_idxs = np.array([sim.site_name2id[f'moveable_box{i}_corner{j}']
                                              for i in range(self.curr_n_boxes)
                                              for j in range(4)])
 
@@ -260,10 +260,10 @@ class Cylinders(EnvModule):
 
     def modify_sim_step(self, env, sim):
         if self.make_static:
-            self.s_cylinder_geom_idxs = np.array([sim.model.geom_name2id(f'static_cylinder{i}')
+            self.s_cylinder_geom_idxs = np.array([sim.geom_name2id[f'static_cylinder{i}']
                                                   for i in range(self.n_objects)])
         else:
-            self.m_cylinder_geom_idxs = np.array([sim.model.geom_name2id(f'moveable_cylinder{i}')
+            self.m_cylinder_geom_idxs = np.array([sim.geom_name2id[f'moveable_cylinder{i}']
                                                   for i in range(self.n_objects)])
             qpos_idxs = [qpos_idxs_from_joint_prefix(sim, f'moveable_cylinder{i}')
                          for i in range(self.n_objects)]
@@ -316,7 +316,7 @@ class LidarSites(EnvModule):
 
     def modify_sim_step(self, env, sim):
         # set lidar size and shape
-        self.lidar_ids = np.array([[sim.model.site_name2id(f"agent{i}:lidar{j}")
+        self.lidar_ids = np.array([[sim.site_name2id[f"agent{i}:lidar{j}"]
                                     for j in range(self.n_lidar_per_agent)]
                                    for i in range(self.n_agents)])
         # set lidar site shape to cylinder

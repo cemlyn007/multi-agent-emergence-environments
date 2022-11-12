@@ -88,13 +88,13 @@ class DiscardMujocoExceptionEpisodes(gym.Wrapper):
 
     def reset(self):
         try:
-            obs = self.env.reset()
+            obs, info = self.env.reset()
         except mujoco.UnexpectedError:
-            logging.info("Encountered Mujoco Exception During Environment Reset.\
-                          Trying Reset Again")
-            obs = self.reset()
+            logging.info("Encountered Mujoco Exception During Environment Reset."
+                         "Trying Reset Again")
+            obs, info = self.reset()
         self.episode_error = False
-        return obs
+        return obs, info
 
 
 class MaskActionWrapper(gym.Wrapper):

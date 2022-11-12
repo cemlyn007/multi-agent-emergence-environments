@@ -93,11 +93,11 @@ class LockObjectsTask(gym.Wrapper):
             np.random.shuffle(self.obj_order)
         self.objs_locked[:] = 0
         self.unlocked_objs = self.obj_order
-        obs = self.env.reset()
+        obs, info = self.env.reset()
         self.spawn_pos = obs[self.agent_key][0, :2]
         self.spawn_pos_dist = 0
         self.next_obj, self.next_obj_dist = self._get_next_obj(obs)
-        return obs
+        return obs, info
 
     def _get_next_obj(self, obs):
         '''
@@ -159,7 +159,7 @@ class LockObjectsTask(gym.Wrapper):
             if len(self.unlocked_objs) > 1:
                 action[self.act_key][:, self.unlocked_objs[1:]] = 0
 
-        obs, rew, done, info = self.env.step(action)
+        obs, rew, terminated, truncated, info = self.env.step(action)
         curr_objs_locked = obs[self.lock_key].flatten().astype(np.int8)
 
         rew += self._get_lock_reward(curr_objs_locked, old_objs_locked=self.objs_locked)
@@ -182,7 +182,7 @@ class LockObjectsTask(gym.Wrapper):
             # reward for successfully completing the task
             rew += self.success_reward
 
-        return obs, rew, done, info
+        return obs, rew, terminated, truncated, info
 
 
 def tri_placement(tri_room_idx):
